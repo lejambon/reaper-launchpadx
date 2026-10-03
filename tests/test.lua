@@ -18,7 +18,8 @@ local function fixture()
       I_RECINPUT = -1, I_RECMON = 0, I_RECARM = 0, B_AUTO_RECARM = 1, B_MUTE = 0, I_SOLO = 0 }
   end
   f.a, f.hidden, f.b, f.c = track('a', true, true), track('hidden', false), track('b'), track('c')
-  f.project = { tracks = { f.a, f.hidden, f.b, f.c } }
+  f.project = { tracks = { f.a, f.hidden, f.b, f.c }, play_state = 0, cursor = 0, repeat_on = 0 }
+  f.transport_calls = {}
   f.active, f.projects = f.project, { f.project }
   local r = {}
   f.r = r
@@ -54,6 +55,45 @@ local function fixture()
   function r.GetMasterTrack() return f.master end
   function r.GetMasterMuteSoloFlags() return f.mono and 4 or 0 end
   function r.Main_OnCommand(id) eq(id, 40917); f.mono = not f.mono end
+  function r.GetPlayStateEx(project) return project.play_state or 0 end
+  function r.GetCursorPositionEx(project) return project.cursor or 0 end
+  local function transport_call(name, project)
+    f.transport_calls[#f.transport_calls + 1] = { name = name, project = project }
+  end
+  function r.OnPlayButtonEx(project)
+    transport_call('play', project)
+    project.play_state = (r.GetPlayStateEx(project) & 4) | 1
+  end
+  function r.OnPauseButtonEx(project)
+    transport_call('pause', project)
+    project.play_state = (r.GetPlayStateEx(project) & 4) | 2
+  end
+  function r.OnStopButtonEx(project)
+    transport_call('stop', project)
+    if not f.cancel_stop then project.play_state = 0 end
+  end
+  function r.Main_OnCommandEx(id, flag, project)
+    eq(id, 1013); eq(flag, 0); transport_call('record', project)
+    if (r.GetPlayStateEx(project) & 4) ~= 0 then
+      project.play_state = 1
+    else
+      project.play_state = 5
+    end
+  end
+  function r.GetSetRepeatEx(project, value)
+    if value == 2 then
+      transport_call('repeat', project)
+      project.repeat_on = (project.repeat_on or 0) == 0 and 1 or 0
+    else
+      eq(value, -1)
+    end
+    return project.repeat_on or 0
+  end
+  function r.SetEditCurPos2(project, position, moveview, seekplay)
+    transport_call('cursor', project)
+    eq(position, 0); eq(moveview, true); eq(seekplay, false)
+    project.cursor = position
+  end
   function r.SetOnlyTrackSelected(target)
     for _, t in ipairs(f.active.tracks) do t.selected = t == target end
   end
@@ -114,7 +154,7 @@ end)
 test('cleanup does not send to an unrelated device after output reorder', function()
   local f = fixture()
   f.outputs[1] = 'Different device'; f.engine:cleanup()
-  eq(#f.sent, 80); eq(f.a.I_RECINPUT, -1)
+  eq(#f.sent, 75); eq(f.a.I_RECINPUT, -1)
 end)
 
 test('Start prevents duplicates and Disable persists through automatic startup', function()
@@ -212,7 +252,7 @@ end)
 
 test('startup has no target and preserves native settings', function()
   local f = fixture(); eq(f.engine.owner,nil); eq(f.a.I_RECINPUT,-1)
-  eq(#f.sent,80); eq(f.sent[2].msg:byte(8),1); eq(#f.sent[3].msg,8)
+  eq(#f.sent,75); eq(f.sent[2].msg:byte(8),1); eq(#f.sent[3].msg,8)
   f:press(97); f:press(98); f:tick(); eq(f.engine.layout,4); eq(f.engine.owner,nil)
 end)
 
@@ -246,15 +286,15 @@ end)
 test('all palette colors, external edits, dark missing columns and master state', function()
   local f=fixture(); f:session(); f:target(1)
   eq(f.engine.leds[0x90*128+31],3); eq(f.engine.leds[0x90*128+38],0)
-  eq(f.engine.leds[0xB0*128+39],3); eq(f.engine.leds[0xB0*128+79],3)
+  eq(f.engine.leds[0xB0*128+39],3); eq(f.engine.leds[0xB0*128+19],3)
   f.a.B_MUTE,f.a.I_SOLO=1,2; f:tick()
   local function led(status,key) return f.engine.leds[status*128+key] end
   eq(led(0x90,81),0); eq(led(0x90,41),0); eq(led(0x90,31),5)
   eq(led(0x90,21),9); eq(led(0x90,11),49); eq(led(0x90,88),0)
   for row=1,5 do eq(led(0x90,(9-row)*10+1),0) end
-  f:press(39); f:press(79); f:tick(); eq(f.master.B_MUTE,1); eq(f.mono,true)
-  eq(led(0xB0,39),5); eq(led(0xB0,79),45)
-  f:press(79); f:tick(); eq(f.mono,false); eq(led(0xB0,79),3)
+  f:press(39); f:press(19); f:tick(); eq(f.master.B_MUTE,1); eq(f.mono,true)
+  eq(led(0xB0,39),5); eq(led(0xB0,19),9)
+  f:press(19); f:tick(); eq(f.mono,false); eq(led(0xB0,19),3)
   f.master.B_MUTE=0; f.a.B_MUTE=0; f:tick()
   eq(led(0xB0,39),3); eq(led(0x90,31),3)
   f.master.B_MUTE=1; f.a.B_MUTE=1; f:tick()
@@ -373,8 +413,10 @@ test('ports 70/71 are not truncated and transport never gates operation', functi
   function f.r.GetNumMIDIInputs() return 128 end
   f:tick(1.1); f:cc(95,127,70); f:cc(95,0,70); f:tick(); f:target(1)
   eq(f.a.I_RECINPUT,6368)
-  f.r.GetPlayState=function() error('transport must not be queried') end
-  for _,state in ipairs({0,1,5,0}) do f:tap(6,1); f:tick(); eq(f.engine.owner.track,f.a) end
+  for _,state in ipairs({0,1,2,5,6,0}) do
+    f.project.play_state = state
+    f:tap(6,1); f:tick(); eq(f.engine.owner.track,f.a)
+  end
   f.engine:cleanup(); eq(f.a.I_RECINPUT,-1)
 end)
 test('previously armed MIDI targets always disarm on transfer and cleanup', function()
@@ -681,6 +723,160 @@ test('action finalizes even when engine cleanup unexpectedly throws', function()
   eq(f.ext.running, nil); eq(f.toggle, 0)
   assert(table.concat(f.logs):find('unexpected cleanup exception', 1, true))
   for _, exit in ipairs(f.exits) do exit() end
+end)
+
+local function transport_led(f, key, color, effect)
+  local id = 0xB0 * 128 + key
+  eq(f.engine.leds[id], color, 'LED color for CC ' .. key)
+  eq(f.engine.led_effects[id], effect or 0, 'LED effect for CC ' .. key)
+  for i = #f.sent, 1, -1 do
+    local message = f.sent[i].msg
+    if #message == 3 and message:byte(2) == key then
+      eq(message:byte(1), 0xB0 | (effect or 0)); eq(message:byte(3), color)
+      return
+    end
+  end
+  error('No LED message for CC ' .. key)
+end
+
+test('Pan plays pauses and resumes once per press including recording', function()
+  local f = fixture(); f:session()
+  f:cc(79); f:cc(79); f:tick()
+  eq(f.project.play_state, 1); eq(#f.transport_calls, 1)
+  f:cc(79, 0); f:press(79); f:tick()
+  eq(f.project.play_state, 2); eq(f.transport_calls[2].name, 'pause')
+  f:press(79); f:tick(); eq(f.project.play_state, 1)
+  f.project.play_state = 5
+  f:press(79); f:tick(); eq(f.project.play_state, 6)
+  f:press(79); f:tick(); eq(f.project.play_state, 5)
+  for _, call in ipairs(f.transport_calls) do eq(call.project, f.project) end
+  eq(f.mono, nil)
+end)
+
+test('Volume records and punches out without changing track routing', function()
+  local f = fixture(); f:session(); f:target(1)
+  local writes = #f.writes
+  f:cc(89); f:cc(89); f:tick()
+  eq(f.project.play_state, 5); eq(#f.transport_calls, 1)
+  f:cc(89, 0); f:press(89); f:tick()
+  eq(f.project.play_state, 1); eq(#f.transport_calls, 2)
+  eq(f.engine.owner.track, f.a); eq(f.a.I_RECARM, 1); eq(#f.writes, writes)
+  f:press(98); f:press(69); f:press(93); f:press(94); f:tick()
+  eq(#f.transport_calls, 2)
+end)
+
+test('Stop and Send B act immediately while notes hold a pending transfer', function()
+  local f = fixture(); f:session(); f:target(1)
+  f:event(1, 0x90, 60, 90); f:target(2)
+  f.project.play_state, f.project.cursor = 5, 12
+  f:press(49); f:tick()
+  eq(f.project.play_state, 0); eq(f.project.cursor, 12)
+  eq(f.engine.owner.track, f.a); eq(f.engine.requested, f.hidden); eq(f.engine.held, 1)
+  f.project.play_state = 5
+  f:press(59); f:tick()
+  eq(f.project.play_state, 0); eq(f.project.cursor, 0)
+  eq(f.transport_calls[2].name, 'stop'); eq(f.transport_calls[3].name, 'cursor')
+  eq(f.engine.owner.track, f.a); eq(f.engine.requested, f.hidden); eq(f.a.I_RECARM, 1)
+  f.cancel_stop = true; f.project.play_state, f.project.cursor = 5, 12
+  f:press(59); f:tick()
+  eq(f.project.play_state, 5); eq(f.project.cursor, 12)
+  eq(#f.transport_calls, 4)
+end)
+
+test('Solo toggles repeat and Record Arm toggles mono independently of grid solo', function()
+  local f = fixture(); f:session()
+  transport_led(f, 29, 3); transport_led(f, 19, 3)
+  f:press(29); f:tick(); eq(f.project.repeat_on, 1); transport_led(f, 29, 19)
+  f:press(19); f:tap(7, 1); f:tick()
+  eq(f.mono, true); transport_led(f, 19, 9)
+  eq(f.a.I_SOLO, 1); eq(f.engine.leds[0x90 * 128 + 21], 9)
+  eq(f.engine.leds[0x90 * 128 + 22], 3); eq(f.engine.leds[0x90 * 128 + 28], 0)
+  f:press(29); f:press(19); f:tap(7, 1); f:tick()
+  eq(f.project.repeat_on, 0); transport_led(f, 29, 3)
+  eq(f.mono, false); transport_led(f, 19, 3)
+  eq(f.engine.leds[0x90 * 128 + 21], 3)
+  f.project.repeat_on = 1; f:tick(); transport_led(f, 29, 19)
+end)
+
+test('transport LEDs follow state cursor tolerance and animation changes', function()
+  local f = fixture(); f:session()
+  local cases = {
+    { state = 0, cursor = 0, play = 19, stop = 1, start = 1 },
+    { state = 0, cursor = 12, play = 19, stop = 1, start = 3 },
+    { state = 1, cursor = 0, play = 19, pulse = 2, stop = 3, start = 3 },
+    { state = 2, cursor = 0, play = 9, stop = 3, start = 3 },
+    { state = 5, cursor = 0, play = 19, pulse = 2, record = 2, stop = 3, start = 3 },
+    { state = 6, cursor = 0, play = 9, record = 2, stop = 3, start = 3 },
+    { state = 0, cursor = 0.001, play = 19, stop = 1, start = 1 },
+    { state = 0, cursor = 0.0011, play = 19, stop = 1, start = 3 },
+  }
+  for _, case in ipairs(cases) do
+    f.project.play_state, f.project.cursor = case.state, case.cursor; f:tick()
+    transport_led(f, 79, case.play, case.pulse)
+    transport_led(f, 89, 5, case.record)
+    transport_led(f, 49, case.stop); transport_led(f, 59, case.start)
+    local sent = #f.sent; f:tick(); eq(#f.sent, sent)
+  end
+  f.project.play_state = 1; f:tick()
+  f.project.play_state = 0
+  local sent = #f.sent; f:tick()
+  local clear, steady = f.sent[sent + 1].msg, f.sent[sent + 2].msg
+  eq(clear, string.char(0xB2, 79, 0)); eq(steady, string.char(0xB0, 79, 19))
+end)
+
+test('transport controls and LED writes are gated in Note and Custom modes', function()
+  local f = fixture()
+  local keys = { 89, 79, 29, 49, 59 }
+  for _, sent in ipairs(f.sent) do
+    if #sent.msg == 3 then
+      for _, key in ipairs(keys) do assert(sent.msg:byte(2) ~= key) end
+    end
+  end
+  for _, mode in ipairs({ 96, 97 }) do
+    f:press(mode); f:tick()
+    local sent = #f.sent
+    for _, key in ipairs(keys) do f:press(key) end
+    f.project.play_state = 5; f:tick()
+    eq(#f.transport_calls, 0); eq(#f.sent, sent)
+  end
+  f:session(); transport_led(f, 89, 5, 2); transport_led(f, 79, 19, 2)
+  for _, key in ipairs(keys) do
+    f:event(0, 0xB0, key, 127); f:event(2, 0xB1, key, 127)
+  end
+  f:tick(); eq(#f.transport_calls, 0)
+  f.inputs[1] = nil
+  for _, key in ipairs(keys) do f:press(key) end
+  f:tick(1.1); eq(#f.transport_calls, 0)
+end)
+
+test('transport reentry and reconnect repaint current external state', function()
+  local f = fixture(); f:session(); f.project.play_state = 5; f:tick()
+  f:press(96); f:tick(); f.project.play_state = 0; f:session()
+  transport_led(f, 79, 19); transport_led(f, 89, 5)
+  f.inputs[1] = nil; f:tick(1.1)
+  f.inputs[1] = 'Launchpad X LPX MIDI'; f.project.play_state = 5; f:tick(1.1)
+  f:session(); transport_led(f, 79, 19, 2); transport_led(f, 89, 5, 2)
+end)
+
+test('transport ignores a new project while held notes defer project cleanup', function()
+  local f = fixture(); f:session(); f:target(1)
+  f:event(1, 0x90, 60, 90); f:tick()
+  local new = { tracks = { f.b }, play_state = 0, cursor = 12, repeat_on = 0 }
+  f.projects[2], f.active = new, new
+  for _, key in ipairs({ 89, 79, 29, 49, 59 }) do f:press(key) end
+  f:tick(); eq(#f.transport_calls, 0)
+  f:event(1, 0x80, 60, 0); f:tick(); f:tick()
+  f:press(79); f:tick()
+  eq(new.play_state, 1); eq(f.transport_calls[1].project, new); eq(f.project.play_state, 0)
+end)
+
+test('capability checks cover every new transport API', function()
+  for _, name in ipairs({ 'GetPlayStateEx', 'OnPlayButtonEx', 'OnPauseButtonEx', 'OnStopButtonEx',
+    'Main_OnCommandEx', 'GetSetRepeatEx', 'GetCursorPositionEx', 'SetEditCurPos2' }) do
+    local f = fixture(); f.r[name] = nil
+    local ok, err = config.check(f.r)
+    eq(ok, nil); assert(err:find(name, 1, true))
+  end
 end)
 
 print(string.format('%d tests passed.',count))

@@ -5,23 +5,33 @@ local fields = { 'I_RECINPUT', 'I_RECMON', 'I_RECARM', 'B_AUTO_RECARM' }
 local layout = { session = 0, note = 1, custom = 4 }
 local command = { layout = 0x00, daw_mode = 0x10 }
 local hardware_mode = { standalone = 0, daw = 1 }
-local button = { session = 95, note = 96, custom = 97, master_mute = 39, master_mono = 79 }
+local button = {
+  session = 95, note = 96, custom = 97, master_mute = 39, master_mono = 19,
+  record = 89, play_pause = 79, repeat_toggle = 29, stop = 49, start = 59,
+}
 local mode_buttons = {
   [button.session] = layout.session, [button.note] = layout.note, [button.custom] = layout.custom,
 }
 local mixer_row = { mute = 6, solo = 7, arm = 8 }
-local palette = { off = 0, inactive = 3, muted = 5, solo = 9, midi_arm = 49, audio_arm = 53, mono = 45 }
+local palette = {
+  off = 0, dim_white = 1, inactive = 3, muted = 5, solo = 9, midi_arm = 49, audio_arm = 53,
+  mono = 9, record = 5, play = 19, paused = 9, repeat_on = 19,
+}
+local play_state = { playing = 1, paused = 2, recording = 4 }
+local lighting = { static = 0, pulse = 2 }
+local record_action = 1013
+local start_tolerance = 0.001
 local mono_action = 40917
 local mono_flag = 4
 local sysex_prefix = string.char(0xF0, 0, 0x20, 0x29, 2, 0x0C)
 local feedback_buttons = {
-  91, 92, 93, 94, 98, 89, button.master_mono, 69, 59, 49, button.master_mute, 29, 19,
+  91, 92, 93, 94, 98, 69, button.master_mute, button.master_mono,
 }
 
 function Engine.new(r, config)
   local self = setmetatable({ r = r, config = config,
     notes = {}, sustain = {}, buttons = {}, held = 0, last_seq = 0,
-    ready_at = 0, uncertain = false, leds = {}, next_ports = 0 }, Engine)
+    ready_at = 0, uncertain = false, leds = {}, led_effects = {}, next_ports = 0 }, Engine)
   self.records = {}
   self.project = r.EnumProjects(-1, "")
   self.last_seq = r.MIDI_GetRecentInputEvent(0)
@@ -67,7 +77,7 @@ function Engine:connect()
   self.layout = layout.note
   self:send(command.layout) -- Supported layout readback.
   self.owns_hardware = true
-  self.leds = {}
+  self.leds, self.led_effects = {}, {}
   self.repaint = true
 end
 
@@ -243,6 +253,28 @@ function Engine:request_target(track)
   end
 end
 
+function Engine:transport(key)
+  local r, project = self.r, self.project
+  if key == button.play_pause then
+    local state = r.GetPlayStateEx(project)
+    if (state & play_state.paused) ~= 0 or (state & play_state.playing) == 0 then
+      r.OnPlayButtonEx(project)
+    else
+      r.OnPauseButtonEx(project)
+    end
+  elseif key == button.record then
+    r.Main_OnCommandEx(record_action, 0, project)
+  elseif key == button.repeat_toggle then
+    r.GetSetRepeatEx(project, 2)
+  elseif key == button.stop or key == button.start then
+    r.OnStopButtonEx(project)
+    -- Native recording prompts can leave transport running; never seek then.
+    if key == button.start and r.GetPlayStateEx(project) == 0 then
+      r.SetEditCurPos2(project, 0, true, false)
+    end
+  end
+end
+
 function Engine:event(message, device, now)
   if #message < 2 then return end
   device = device & 0xFFFF -- REAPER marks control-only inputs in bit 16.
@@ -291,6 +323,8 @@ function Engine:event(message, device, now)
     elseif key == button.master_mono then
       -- Native action explicitly selects L+R rather than retaining L/R/L-R summing.
       self.r.Main_OnCommand(mono_action, 0)
+    else
+      self:transport(key)
     end
     return
   end
@@ -332,12 +366,37 @@ function Engine:history(now)
   for i = #events, 1, -1 do self:event(events[i].message, events[i].device, now) end
 end
 
-function Engine:light(status, key, value)
+function Engine:light(status, key, value, effect)
+  effect = effect or lighting.static
   local id = status * 128 + key
-  if self.leds[id] ~= value then
-    self.r.SendMIDIMessageToHardware(self.output, string.char(status, key, value))
-    self.leds[id] = value
+  if self.leds[id] ~= value or self.led_effects[id] ~= effect then
+    if self.led_effects[id] == lighting.pulse and effect == lighting.static then
+      self.r.SendMIDIMessageToHardware(self.output, string.char(status | lighting.pulse, key, 0))
+    end
+    self.r.SendMIDIMessageToHardware(self.output, string.char(status | effect, key, value))
+    self.leds[id], self.led_effects[id] = value, effect
   end
+end
+
+function Engine:transport_feedback()
+  local state = self.r.GetPlayStateEx(self.project)
+  local paused = (state & play_state.paused) ~= 0
+  local playing = (state & play_state.playing) ~= 0
+  local recording = (state & play_state.recording) ~= 0
+  local stopped = state == 0
+  local repeat_on = self.r.GetSetRepeatEx(self.project, -1) ~= 0
+  local at_start = math.abs(self.r.GetCursorPositionEx(self.project)) <= start_tolerance
+  local play_color, play_effect = palette.play, lighting.static
+  if paused then
+    play_color = palette.paused
+  elseif playing then
+    play_effect = lighting.pulse
+  end
+  self:light(0xB0, button.play_pause, play_color, play_effect)
+  self:light(0xB0, button.record, palette.record, recording and lighting.pulse or lighting.static)
+  self:light(0xB0, button.repeat_toggle, repeat_on and palette.repeat_on or palette.inactive)
+  self:light(0xB0, button.stop, stopped and palette.dim_white or palette.inactive)
+  self:light(0xB0, button.start, stopped and at_start and palette.dim_white or palette.inactive)
 end
 
 function Engine:feedback()
@@ -352,8 +411,8 @@ function Engine:feedback()
         if row == mixer_row.mute then
           color = self.r.GetMediaTrackInfo_Value(track, 'B_MUTE') ~= 0
             and palette.muted or palette.inactive
-        elseif row == mixer_row.solo and self.r.GetMediaTrackInfo_Value(track, 'I_SOLO') ~= 0 then
-          color = palette.solo
+        elseif row == mixer_row.solo then
+          color = self.r.GetMediaTrackInfo_Value(track, 'I_SOLO') ~= 0 and palette.solo or palette.inactive
         elseif row == mixer_row.arm and self.r.GetMediaTrackInfo_Value(track, 'I_RECARM') ~= 0 then
           local input = self.r.GetMediaTrackInfo_Value(track, 'I_RECINPUT')
           color = input >= 0 and input < 4096 and palette.audio_arm or palette.midi_arm
@@ -372,6 +431,7 @@ function Engine:feedback()
     end
     self:light(0xB0, key, color)
   end
+  if self.layout == layout.session then self:transport_feedback() end
 end
 
 function Engine:tick()

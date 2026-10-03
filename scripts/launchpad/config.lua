@@ -55,7 +55,10 @@ end
 function M.check(r)
   for _, name in ipairs({ 'MIDI_GetRecentInputEvent', 'SendMIDIMessageToHardware',
     'GetMIDIInputName', 'GetMIDIOutputName', 'GetNumMIDIInputs', 'GetNumMIDIOutputs',
-    'ValidatePtr2', 'GetMasterTrack', 'GetMasterMuteSoloFlags', 'Main_OnCommand', 'EnumProjects', 'GetAudioDeviceInfo', 'time_precise' }) do
+    'ValidatePtr2', 'GetMasterTrack', 'GetMasterMuteSoloFlags', 'Main_OnCommand',
+    'GetPlayStateEx', 'OnPlayButtonEx', 'OnPauseButtonEx', 'OnStopButtonEx', 'Main_OnCommandEx',
+    'GetSetRepeatEx', 'GetCursorPositionEx', 'SetEditCurPos2',
+    'EnumProjects', 'GetAudioDeviceInfo', 'time_precise' }) do
     if type(r[name]) ~= 'function' then
       return nil, 'Missing REAPER API: ' .. name .. '. Update REAPER before installing.'
     end

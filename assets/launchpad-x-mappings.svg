@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="750" viewBox="0 0 1080 750" role="img" aria-labelledby="title desc">
-<title id="title">Launchpad X Session mixer button mappings</title>
-<desc id="desc">Columns map to tracks 1 through 8. Rows 1 through 5 are dark and unassigned. Row 6 toggles mute, white when unmuted and red when muted. Row 7 toggles solo, amber when active. Row 8 toggles audio record arm in pink or exclusive Note target and arm in purple. Right Pan toggles master mono L+R, blue for mono and white for stereo. Right Mute toggles master mute, red when muted and white when unmuted. Missing tracks, inactive solo and unarmed tracks are dark.</desc>
-<rect width="1080" height="750" rx="18" fill="#f4f6fa"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" role="img" aria-labelledby="title desc">
+<title id="title">Launchpad X Session mixer and transport mappings</title>
+<desc id="desc">Columns map to tracks 1 through 8. Rows 1 through 5 are dark. Row 6 toggles track mute, white off and red on. Row 7 toggles track solo, white off and amber on. Row 8 selects and arms a Note target in purple or toggles audio arm in pink. Volume records, red steady or pulsing while recording. Pan plays or pauses, green steady when stopped, pulsing when playing and amber when paused. Send B stops and goes to project start, dim white when stopped at start. Stop Clip stops transport, dim white when stopped. Mute toggles master mute, Solo toggles repeat with green on and white off, and Record Arm toggles master mono with amber on and white off. Send A, Capture MIDI and arrows are unassigned. Missing tracks and unarmed pads are dark.</desc>
+<rect width="1280" height="940" rx="18" fill="#f4f6fa"/>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#172033} .label{font-size:18px;font-weight:700}.detail{font-size:16px;fill:#4a5568}.small{font-size:11px;fill:#c4cbd6}.number{font-size:15px;fill:#aab4c5;text-anchor:middle}.leader{fill:none;stroke:#8592a6;stroke-width:2}</style>
-<text x="36" y="43" font-size="26" font-weight="700">Launchpad X · Session mixer</text>
+<text x="36" y="43" font-size="26" font-weight="700">Launchpad X · Session mixer and transport</text>
 <text x="36" y="72" class="detail">Tracks 1–8 from left to right · rows count from the top</text>
 <rect x="34" y="98" width="576" height="598" rx="28" fill="#171d27"/>
 <text x="58" y="126" class="small">novation</text>
@@ -30,7 +30,7 @@
 <text x="435" y="165" font-family="Arial,Helvetica,sans-serif" font-size="10" text-anchor="middle" fill="#c4cbd6" style="fill:#c4cbd6">Custom</text>
 <text x="435" y="201" class="number" >7</text>
 <rect x="470" y="145" width="46" height="32" rx="10" fill="#303a4b"/>
-<text x="493" y="165" font-family="Arial,Helvetica,sans-serif" font-size="10" text-anchor="middle" fill="#c4cbd6" style="fill:#c4cbd6">Capture</text>
+<text x="493" y="165" font-family="Arial,Helvetica,sans-serif" font-size="8" text-anchor="middle" fill="#c4cbd6" style="fill:#c4cbd6"><tspan x="493" y="158">Capture</tspan><tspan x="493" y="169">MIDI</tspan></text>
 <text x="493" y="201" class="number" >8</text>
 <rect x="64" y="215" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="122" y="215" width="46" height="46" rx="6" fill="#293343"/>
@@ -40,8 +40,8 @@
 <rect x="354" y="215" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="412" y="215" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="470" y="215" width="46" height="46" rx="6" fill="#293343"/>
-<rect x="536" y="218" width="52" height="40" rx="14" fill="#303a4b"/>
-<text x="562" y="243" text-anchor="middle" font-size="10" style="fill:#c4cbd6">Volume</text>
+<rect x="536" y="218" width="52" height="40" rx="14" fill="#f25f69"/>
+<text x="562" y="243" text-anchor="middle" font-size="10" style="fill:#172033">Volume</text>
 <rect x="64" y="271" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="122" y="271" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="180" y="271" width="46" height="46" rx="6" fill="#293343"/>
@@ -50,7 +50,7 @@
 <rect x="354" y="271" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="412" y="271" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="470" y="271" width="46" height="46" rx="6" fill="#293343"/>
-<rect x="536" y="274" width="52" height="40" rx="14" fill="#6daaff"/>
+<rect x="536" y="274" width="52" height="40" rx="14" fill="#55d77a"/>
 <text x="562" y="299" text-anchor="middle" font-size="10" style="fill:#172033">Pan</text>
 <rect x="64" y="327" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="122" y="327" width="46" height="46" rx="6" fill="#293343"/>
@@ -70,8 +70,8 @@
 <rect x="354" y="383" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="412" y="383" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="470" y="383" width="46" height="46" rx="6" fill="#293343"/>
-<rect x="536" y="386" width="52" height="40" rx="14" fill="#303a4b"/>
-<text x="562" y="411" text-anchor="middle" font-size="10" style="fill:#c4cbd6">Send B</text>
+<rect x="536" y="386" width="52" height="40" rx="14" fill="#aab4c5"/>
+<text x="562" y="411" text-anchor="middle" font-size="10" style="fill:#172033">Send B</text>
 <rect x="64" y="439" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="122" y="439" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="180" y="439" width="46" height="46" rx="6" fill="#293343"/>
@@ -80,8 +80,8 @@
 <rect x="354" y="439" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="412" y="439" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="470" y="439" width="46" height="46" rx="6" fill="#293343"/>
-<rect x="536" y="442" width="52" height="40" rx="14" fill="#303a4b"/>
-<text x="562" y="467" text-anchor="middle" font-size="10" style="fill:#c4cbd6">Stop</text>
+<rect x="536" y="442" width="52" height="40" rx="14" fill="#aab4c5"/>
+<text x="562" y="467" text-anchor="middle" font-size="10" style="fill:#172033">Stop Clip</text>
 <text x="49" y="523" class="number" >6</text>
 <rect x="64" y="495" width="46" height="46" rx="6" fill="#f4f6fa"/>
 <rect x="122" y="495" width="46" height="46" rx="6" fill="#f25f69"/>
@@ -95,15 +95,15 @@
 <text x="562" y="523" text-anchor="middle" font-size="10" style="fill:#172033">Mute</text>
 <text x="49" y="579" class="number" >7</text>
 <rect x="64" y="551" width="46" height="46" rx="6" fill="#ffbb4d"/>
-<rect x="122" y="551" width="46" height="46" rx="6" fill="#293343"/>
+<rect x="122" y="551" width="46" height="46" rx="6" fill="#f4f6fa"/>
 <rect x="180" y="551" width="46" height="46" rx="6" fill="#ffbb4d"/>
-<rect x="238" y="551" width="46" height="46" rx="6" fill="#293343"/>
-<rect x="296" y="551" width="46" height="46" rx="6" fill="#293343"/>
+<rect x="238" y="551" width="46" height="46" rx="6" fill="#f4f6fa"/>
+<rect x="296" y="551" width="46" height="46" rx="6" fill="#f4f6fa"/>
 <rect x="354" y="551" width="46" height="46" rx="6" fill="#ffbb4d"/>
 <rect x="412" y="551" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="470" y="551" width="46" height="46" rx="6" fill="#293343"/>
-<rect x="536" y="554" width="52" height="40" rx="14" fill="#303a4b"/>
-<text x="562" y="579" text-anchor="middle" font-size="10" style="fill:#c4cbd6">Solo</text>
+<rect x="536" y="554" width="52" height="40" rx="14" fill="#55d77a"/>
+<text x="562" y="579" text-anchor="middle" font-size="10" style="fill:#172033">Solo</text>
 <text x="49" y="635" class="number" >8</text>
 <rect x="64" y="607" width="46" height="46" rx="6" fill="#b687fa"/>
 <rect x="122" y="607" width="46" height="46" rx="6" fill="#f28dca"/>
@@ -113,23 +113,40 @@
 <rect x="354" y="607" width="46" height="46" rx="6" fill="#f28dca"/>
 <rect x="412" y="607" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="470" y="607" width="46" height="46" rx="6" fill="#293343"/>
-<rect x="536" y="610" width="52" height="40" rx="14" fill="#303a4b"/>
-<text x="562" y="635" text-anchor="middle" font-size="10" style="fill:#c4cbd6">Record</text>
+<rect x="536" y="610" width="52" height="40" rx="14" fill="#ffbb4d"/>
+<text x="562" y="635" text-anchor="middle" font-size="8" style="fill:#172033">Record Arm</text>
+<path class="leader" d="M590 238 H636"/>
+<text x="654" y="233" class="label">Volume → record / punch out</text>
+<text x="654" y="256" class="detail">Red · pulses while recording</text>
 <path class="leader" d="M590 294 H636"/>
-<text x="654" y="285" class="label" >Pan → master mono L+R</text>
-<text x="654" y="310" class="detail" >Blue: mono · white: stereo</text>
-
-
-<text x="654" y="465" class="label" >Row 6 · track mute</text>
-<text x="654" y="490" class="detail" >White: unmuted · red: muted</text>
+<text x="654" y="289" class="label">Pan → play / pause / resume</text>
+<text x="654" y="312" class="detail">Green · pulses while playing · amber paused</text>
+<path class="leader" d="M590 350 H636"/>
+<text x="654" y="345" class="label">Send A → unassigned</text>
+<text x="654" y="368" class="detail">Dark</text>
+<path class="leader" d="M590 406 H636"/>
+<text x="654" y="401" class="label">Send B → stop and go to start</text>
+<text x="654" y="424" class="detail">White · dim when stopped at project start</text>
+<path class="leader" d="M590 462 H636"/>
+<text x="654" y="457" class="label">Stop Clip → stop transport</text>
+<text x="654" y="480" class="detail">White · dim when already stopped</text>
 <path class="leader" d="M590 518 H636"/>
-<text x="654" y="533" class="label" >Mute → master mute</text>
-<text x="654" y="558" class="detail" >White: unmuted · red: muted</text>
-
-<text x="654" y="590" class="label" >Row 7 · track solo</text>
-<text x="654" y="615" class="detail" >Amber: solo active</text>
-
-<text x="654" y="654" class="label" >Row 8 · arm / Note target</text>
-<text x="654" y="679" class="detail" >Pink: audio arm · purple: Note target arm</text>
-<text x="36" y="726" class="detail" >Example LED states shown. Missing tracks, inactive solo and unarmed tracks are dark.</text>
+<text x="654" y="513" class="label">Mute → master mute</text>
+<text x="654" y="536" class="detail">Red: muted · white: unmuted</text>
+<path class="leader" d="M590 574 H636"/>
+<text x="654" y="569" class="label">Solo → repeat</text>
+<text x="654" y="592" class="detail">Green: on · white: off</text>
+<path class="leader" d="M590 630 H636"/>
+<text x="654" y="625" class="label">Record Arm → master mono L+R</text>
+<text x="654" y="648" class="detail">Amber: mono · white: stereo</text>
+<text x="36" y="744" class="label">Grid controls · tracks 1–8</text>
+<text x="36" y="780" class="label">Row 6 · track mute</text>
+<text x="36" y="807" class="detail">White: off · red: on</text>
+<text x="400" y="780" class="label">Row 7 · track solo</text>
+<text x="400" y="807" class="detail">White: off · amber: on</text>
+<text x="790" y="780" class="label">Row 8 · arm / Note target</text>
+<text x="790" y="807" class="detail">Pink: audio · purple: Note target</text>
+<text x="36" y="858" class="detail">Session only · rows 1–5, Send A, Capture MIDI and arrows are unassigned.</text>
+<text x="36" y="888" class="detail">Example: stopped at start, repeat and mono on. Dimmed transport buttons remain functional.</text>
+<text x="36" y="918" class="detail">Missing tracks and unarmed pads are dark. Transport preserves the active Note target.</text>
 </svg>
