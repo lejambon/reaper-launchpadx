@@ -15,13 +15,17 @@ reaper.RefreshToolbar2(section, action)
 local cleaned = false
 local function cleanup()
   if cleaned then return end
-  cleaned = true
-  engine:cleanup()
+  local called, success, cleanup_error = xpcall(function() return engine:cleanup() end, debug.traceback)
+  if not called then cleanup_error = success end
   if config.get(reaper, 'running') == token then
     reaper.DeleteExtState(config.section, 'running', false)
   end
   reaper.SetToggleCommandState(section, action, 0)
   reaper.RefreshToolbar2(section, action)
+  cleaned = true
+  if not called or not success then
+    reaper.ShowConsoleMsg('Launchpad X cleanup failed:\n' .. cleanup_error .. '\n')
+  end
 end
 reaper.atexit(cleanup)
 local function tick()

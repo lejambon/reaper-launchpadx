@@ -2,6 +2,21 @@
 local Engine = {}
 Engine.__index = Engine
 local fields = { 'I_RECINPUT', 'I_RECMON', 'I_RECARM', 'B_AUTO_RECARM' }
+local layout = { session = 0, note = 1, custom = 4 }
+local command = { layout = 0x00, daw_mode = 0x10 }
+local hardware_mode = { standalone = 0, daw = 1 }
+local button = { session = 95, note = 96, custom = 97, master_mute = 39, master_mono = 79 }
+local mode_buttons = {
+  [button.session] = layout.session, [button.note] = layout.note, [button.custom] = layout.custom,
+}
+local mixer_row = { mute = 6, solo = 7, arm = 8 }
+local palette = { off = 0, inactive = 3, muted = 5, solo = 9, midi_arm = 49, audio_arm = 53, mono = 45 }
+local mono_action = 40917
+local mono_flag = 4
+local sysex_prefix = string.char(0xF0, 0, 0x20, 0x29, 2, 0x0C)
+local feedback_buttons = {
+  91, 92, 93, 94, 98, 89, button.master_mono, 69, 59, 49, button.master_mute, 29, 19,
+}
 
 function Engine.new(r, config)
   local self = setmetatable({ r = r, config = config,
@@ -39,18 +54,18 @@ function Engine:valid(track, project)
     and self.r.ValidatePtr2(project, track, 'MediaTrack*')
 end
 
-function Engine:send(command, value)
+function Engine:send(command_id, value)
   if self.output ~= nil then
     self.r.SendMIDIMessageToHardware(self.output,
-      string.char(0xF0, 0, 0x20, 0x29, 2, 0x0C, command) .. (value ~= nil and string.char(value) or "") .. string.char(0xF7))
+      sysex_prefix .. string.char(command_id) .. (value ~= nil and string.char(value) or "") .. string.char(0xF7))
   end
 end
 
 function Engine:connect()
-  self:send(0x10, 1) -- DAW mode; native Live/Note remains available.
-  self:send(0x00, 1) -- Select Note layout; do not set Note/velocity/pressure configuration.
-  self.layout = 1
-  self:send(0x00) -- Supported layout readback.
+  self:send(command.daw_mode, hardware_mode.daw) -- Native Live/Note remains available.
+  self:send(command.layout, layout.note) -- Leave Note/velocity/pressure configuration alone.
+  self.layout = layout.note
+  self:send(command.layout) -- Supported layout readback.
   self.owns_hardware = true
   self.leds = {}
   self.repaint = true
@@ -130,6 +145,7 @@ function Engine:restore()
         end
       else
         if record.suppressed then self.r.SetMediaTrackInfo_Value(track, 'I_RECINPUT', record.saved.I_RECINPUT) end
+        if record.disarmed then self.r.SetMediaTrackInfo_Value(track, 'I_RECARM', 0) end
       end
     end
   end
@@ -150,6 +166,13 @@ function Engine:exclusive()
       if self:conflict(input) then
         local record = self:record(track)
         record.suppressed = true
+        -- A project saved while managed can reopen with an armed Note route
+        -- that this instance has never owned. Retire its arm as well as input.
+        -- All MIDI Inputs suppression leaves independent arm edits intact.
+        if (input - 4096) // 32 == self.note_input then
+          record.disarmed = true
+          self.r.SetMediaTrackInfo_Value(track, 'I_RECARM', 0)
+        end
         self.r.SetMediaTrackInfo_Value(track, 'I_RECINPUT', -1)
       end
     end
@@ -170,16 +193,19 @@ function Engine:transfer(track, project, now)
   end
   if not self:safe(now) then return end
   if self.owner and self.owner.track == track and self.owner.input == self.note_input then return end
+  -- nil explicitly requests shutdown; an invalid destination cancels a transfer.
+  if track == nil then self:release(); return end
+  if not self:valid(track, project) then
+    self.requested = self.owner and self.owner.track or nil
+    return
+  end
   -- Recheck pending requests: routing may change during held-note grace.
-  if self:valid(track, project) then
-    local input = self.r.GetMediaTrackInfo_Value(track, 'I_RECINPUT')
-    if input >= 0 and input < 4096 then
-      self.requested = self.owner and self.owner.track or nil
-      return
-    end
+  local input = self.r.GetMediaTrackInfo_Value(track, 'I_RECINPUT')
+  if input >= 0 and input < 4096 then
+    self.requested = self.owner and self.owner.track or nil
+    return
   end
   self:release()
-  if not self:valid(track, project) then self.requested = nil; return end
   local record = self:record(track)
   record.targeted, record.input = true, self.note_input
   self.owner = record
@@ -200,6 +226,21 @@ function Engine:toggle(track, field)
   local value = self.r.GetMediaTrackInfo_Value(track, field)
   self.r.SetMediaTrackInfo_Value(track, field, value == 0 and 1 or 0)
   self.r.Undo_OnStateChangeEx2(self.project, 'Launchpad X: toggle ' .. field, 1, -1)
+end
+
+-- requested: owner track retains it, another track transfers, nil shuts down.
+-- With no owner, nil means there is no pending activation.
+function Engine:request_target(track)
+  if self.requested ~= track then
+    -- Select a destination, or cancel a pending shutdown by selecting its owner.
+    self.requested = track
+  elseif self.owner and self.owner.track ~= track then
+    -- Pressing the pending destination again cancels the transfer.
+    self.requested = self.owner.track
+  else
+    -- Shut down the owner, or cancel an activation when there is no owner.
+    self.requested = nil
+  end
 end
 
 function Engine:event(message, device, now)
@@ -226,30 +267,30 @@ function Engine:event(message, device, now)
     return -- Notes, aftertouch, transpose and octave controls are never rewritten.
   end
   if not self.online or device ~= self.control_input then return end
-  if message:sub(1, 7) == string.char(0xF0, 0, 32, 41, 2, 12, 0)
+  if message:sub(1, 7) == sysex_prefix .. string.char(command.layout)
     and #message == 9 and message:byte(9) == 0xF7 then
     self:mode(message:byte(8)); return
   end
   if channel ~= 0 or value == nil then return end
-  local button
-  if kind == 0xB0 then button = 'cc' .. key
-  elseif kind == 0x90 or kind == 0x80 then button = 'pad' .. key
+  local button_id
+  if kind == 0xB0 then button_id = 'cc' .. key
+  elseif kind == 0x90 or kind == 0x80 then button_id = 'pad' .. key
   else return end
   local down = kind ~= 0x80 and value > 0
-  local was_down = self.buttons[button]
-  self.buttons[button] = down or nil
+  local was_down = self.buttons[button_id]
+  self.buttons[button_id] = down or nil
   if not down or was_down then return end
-  if kind == 0xB0 and (key == 95 or key == 96 or key == 97) then
-    self:mode(key == 95 and 0 or key == 96 and 1 or 4)
-    self:send(0x00)
+  if kind == 0xB0 and mode_buttons[key] ~= nil then
+    self:mode(mode_buttons[key])
+    self:send(command.layout)
     return
   end
-  if self.layout ~= 0 or self.r.EnumProjects(-1, '') ~= self.project then return end
+  if self.layout ~= layout.session or self.r.EnumProjects(-1, '') ~= self.project then return end
   if kind == 0xB0 then
-    if key == 39 then self:toggle(self.r.GetMasterTrack(self.project), 'B_MUTE')
-    elseif key == 79 then
+    if key == button.master_mute then self:toggle(self.r.GetMasterTrack(self.project), 'B_MUTE')
+    elseif key == button.master_mono then
       -- Native action explicitly selects L+R rather than retaining L/R/L-R summing.
-      self.r.Main_OnCommand(40917, 0)
+      self.r.Main_OnCommand(mono_action, 0)
     end
     return
   end
@@ -257,18 +298,14 @@ function Engine:event(message, device, now)
   if column < 1 or column > 8 or row < 1 or row > 8 then return end
   local track = self.r.GetTrack(self.project, column - 1)
   if not track then return end
-  if row == 6 then self:toggle(track, 'B_MUTE')
-  elseif row == 7 then self:toggle(track, 'I_SOLO')
-  elseif row == 8 then
+  if row == mixer_row.mute then self:toggle(track, 'B_MUTE')
+  elseif row == mixer_row.solo then self:toggle(track, 'I_SOLO')
+  elseif row == mixer_row.arm then
     local input = self.r.GetMediaTrackInfo_Value(track, 'I_RECINPUT')
     if input >= 0 and input < 4096 then
       self:toggle(track, 'I_RECARM')
-    elseif self.requested == track then
-      -- Cancel a pending transfer, or request shutdown of the active owner.
-      self.requested = self.owner and self.owner.track ~= track and self.owner.track or nil
     else
-      -- Includes cancellation of a pending shutdown by pressing its owner again.
-      self.requested = track
+      self:request_target(track)
     end
   end
 end
@@ -304,28 +341,35 @@ function Engine:light(status, key, value)
 end
 
 function Engine:feedback()
-  if not self.online or (self.layout ~= 0 and not (self.repaint and self.layout == 1)) then return end
+  if not self.online then return end
+  if self.layout ~= layout.session and not (self.repaint and self.layout == layout.note) then return end
   self.repaint = false
   for column = 1, 8 do
     local track = self.r.GetTrack(self.project, column - 1)
     for row = 1, 8 do
-      local color = 0
+      local color = palette.off
       if track then
-        if row == 6 then color = self.r.GetMediaTrackInfo_Value(track, 'B_MUTE') ~= 0 and 5 or 3
-        elseif row == 7 and self.r.GetMediaTrackInfo_Value(track, 'I_SOLO') ~= 0 then color = 9
-        elseif row == 8 and self.r.GetMediaTrackInfo_Value(track, 'I_RECARM') ~= 0 then
+        if row == mixer_row.mute then
+          color = self.r.GetMediaTrackInfo_Value(track, 'B_MUTE') ~= 0
+            and palette.muted or palette.inactive
+        elseif row == mixer_row.solo and self.r.GetMediaTrackInfo_Value(track, 'I_SOLO') ~= 0 then
+          color = palette.solo
+        elseif row == mixer_row.arm and self.r.GetMediaTrackInfo_Value(track, 'I_RECARM') ~= 0 then
           local input = self.r.GetMediaTrackInfo_Value(track, 'I_RECINPUT')
-          color = input >= 0 and input < 4096 and 53 or 49
+          color = input >= 0 and input < 4096 and palette.audio_arm or palette.midi_arm
         end
       end
       self:light(0x90, (9 - row) * 10 + column, color)
     end
   end
-  for _, key in ipairs({91, 92, 93, 94, 98, 89, 79, 69, 59, 49, 39, 29, 19}) do
-    local color = 0
-    if key == 39 then
-      color = self.r.GetMediaTrackInfo_Value(self.r.GetMasterTrack(self.project), 'B_MUTE') ~= 0 and 5 or 3
-    elseif key == 79 then color = (self.r.GetMasterMuteSoloFlags() & 4) ~= 0 and 45 or 3 end
+  for _, key in ipairs(feedback_buttons) do
+    local color = palette.off
+    if key == button.master_mute then
+      color = self.r.GetMediaTrackInfo_Value(self.r.GetMasterTrack(self.project), 'B_MUTE') ~= 0
+        and palette.muted or palette.inactive
+    elseif key == button.master_mono then
+      color = (self.r.GetMasterMuteSoloFlags() & mono_flag) ~= 0 and palette.mono or palette.inactive
+    end
     self:light(0xB0, key, color)
   end
 end
@@ -348,14 +392,27 @@ function Engine:tick()
 end
 
 function Engine:cleanup()
-  self:restore()
-  if self.owns_hardware then
+  if self.cleaned then return self.cleanup_error == nil, self.cleanup_error end
+  local errors = {}
+  local restored, restore_error = xpcall(function() self:restore() end, debug.traceback)
+  if not restored then
+    errors[#errors + 1] = 'Track restoration incomplete:\n' .. restore_error
+  end
+  local released, release_error = xpcall(function()
+    if not self.owns_hardware then return end
     -- Resolve again so a changed index cannot send SysEx to an unrelated device.
     local ports = self.config.discover(self.r)
     self.output = ports and ports.control_output.id or nil
-    self:send(0x10, 0)
+    self:send(command.daw_mode, hardware_mode.standalone)
     self.owns_hardware = false
+  end, debug.traceback)
+  if not released then
+    errors[#errors + 1] = 'Hardware release failed:\n' .. release_error
   end
+  -- Cleanup is terminal; do not automatically retry partially failed restoration.
+  if #errors > 0 then self.cleanup_error = table.concat(errors, '\n') end
+  self.cleaned = true
+  return self.cleanup_error == nil, self.cleanup_error
 end
 
 return Engine

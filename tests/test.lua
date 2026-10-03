@@ -528,4 +528,159 @@ test('changes to each underlying role name trigger reconnect independently', fun
   end
 end)
 
+test('reopened armed Note route disarms on first transfer and stays dark', function()
+  local f=fixture(); f:session(); f:target(2)
+  -- Saving captures managed values before exit restores the in-memory project.
+  local saved={}
+  for _,key in ipairs({'I_RECINPUT','I_RECMON','I_RECARM','B_AUTO_RECARM'}) do
+    saved[key]=f.hidden[key]
+  end
+  f.engine:cleanup()
+  for key,value in pairs(saved) do f.hidden[key]=value end
+  f.b.I_RECINPUT,f.b.I_RECARM,f.b.I_RECMON=3,1,2
+  f.engine=Engine.new(f.r,config); f:tick(); f:tick(); f:session()
+  eq(f.engine.owner,nil); eq(f.hidden.I_RECARM,1)
+  eq(f.engine.leds[0x90*128+12],49)
+  f:event(1,0x90,60,90); f:target(1)
+  eq(f.a.I_RECARM,0); eq(f.hidden.I_RECARM,1)
+  f:event(1,0x80,60,0); f:tick(); f:tick()
+  eq(f.a.I_RECINPUT,4128); eq(f.a.I_RECARM,1)
+  eq(f.hidden.I_RECINPUT,-1); eq(f.hidden.I_RECARM,0)
+  eq(f.engine.leds[0x90*128+11],49); eq(f.engine.leds[0x90*128+12],0)
+  eq(f.b.I_RECINPUT,3); eq(f.b.I_RECARM,1); eq(f.b.I_RECMON,2)
+  f:target(2); f:target(1)
+  eq(f.hidden.I_RECARM,0); eq(f.engine.leds[0x90*128+12],0)
+  f.engine:cleanup(); eq(f.hidden.I_RECARM,0)
+end)
+
+test('suppressed direct Note arms stay off on cleanup while other MIDI arms persist', function()
+  local f=fixture()
+  f.hidden.I_RECINPUT,f.hidden.I_RECARM=4096+32+5,1
+  f.b.I_RECINPUT,f.b.I_RECARM=4096+63*32,1
+  f.c.I_RECINPUT,f.c.I_RECARM=4096+4*32,1
+  f:session(); f:target(1)
+  eq(f.hidden.I_RECARM,0); eq(f.b.I_RECARM,1); eq(f.c.I_RECARM,1)
+  f.engine:cleanup()
+  eq(f.hidden.I_RECINPUT,4096+32+5); eq(f.hidden.I_RECARM,0)
+  eq(f.hidden.I_RECMON,0); eq(f.hidden.B_AUTO_RECARM,1)
+  eq(f.b.I_RECINPUT,4096+63*32); eq(f.b.I_RECARM,1)
+  eq(f.c.I_RECINPUT,4096+4*32); eq(f.c.I_RECARM,1)
+end)
+
+test('deleted pending destination preserves the current target', function()
+  local f = fixture(); f:session(); f:target(1)
+  f:event(1, 0x90, 60, 90); f:target(2)
+  f.project.tracks = { f.a, f.b, f.c }
+  f:event(1, 0x80, 60, 0); f:tick(); f:tick()
+  eq(f.engine.owner.track, f.a); eq(f.engine.requested, f.a)
+  eq(f.a.I_RECARM, 1); eq(f.a.I_RECINPUT, 4128)
+  f:tick(); eq(f.engine.owner.track, f.a)
+end)
+
+test('invalid initial destinations cancel without acquiring a target', function()
+  for _, change in ipairs({ 'deleted', 'audio' }) do
+    local f = fixture(); f:session()
+    f:event(1, 0x90, 60, 90); f:target(2)
+    if change == 'deleted' then
+      f.project.tracks = { f.a, f.b, f.c }
+    else
+      f.hidden.I_RECINPUT = 0
+    end
+    f:event(1, 0x80, 60, 0); f:tick(); f:tick()
+    eq(f.engine.owner, nil); eq(f.engine.requested, nil)
+    eq(f.a.I_RECARM, 0); eq(f.hidden.I_RECARM, 0)
+  end
+end)
+
+test('cleanup failures finalize the action and allow Enable to restart', function()
+  for _, stage in ipairs({ 'restoration', 'hardware' }) do
+    local f = fixture(); f.engine:cleanup(); reaper = f.r
+    dofile('scripts/Launchpad X - Start.lua'); f:pump(); f:pump()
+    f:press(95); f:tap(8, 1); f:pump()
+    local token = f.ext.running
+    local setter, sender = f.r.SetMediaTrackInfo_Value, f.r.SendMIDIMessageToHardware
+    local attempts = 0
+    if stage == 'restoration' then
+      f.r.SetMediaTrackInfo_Value = function()
+        attempts = attempts + 1
+        error('simulated restoration failure')
+      end
+    else
+      f.r.SendMIDIMessageToHardware = function()
+        attempts = attempts + 1
+        error('simulated hardware failure')
+      end
+    end
+    dofile('scripts/Launchpad X - Disable.lua'); f:pump()
+    eq(f.ext.running, nil); eq(f.toggle, 0)
+    local logs = table.concat(f.logs)
+    assert(logs:find('simulated ' .. stage .. ' failure', 1, true))
+    assert(logs:find('stack traceback:', 1, true))
+    if stage == 'restoration' then
+      assert(logs:find('Track restoration incomplete:', 1, true))
+      local last = f.sent[#f.sent].msg
+      eq(last:byte(7), 0x10); eq(last:byte(8), 0)
+    else
+      assert(logs:find('Hardware release failed:', 1, true))
+      eq(f.a.I_RECARM, 0); eq(f.a.I_RECINPUT, -1)
+    end
+    local previous_attempts = attempts
+    for _, exit in ipairs(f.exits) do exit() end
+    eq(attempts, previous_attempts)
+    f.r.SetMediaTrackInfo_Value, f.r.SendMIDIMessageToHardware = setter, sender
+    dofile('scripts/Launchpad X - Enable.lua'); f:pump(); f:pump()
+    assert(f.ext.running and f.ext.running ~= token); eq(f.toggle, 1)
+    dofile('scripts/Launchpad X - Disable.lua'); f:pump()
+  end
+end)
+
+test('engine cleanup reports both failures and does not retry them', function()
+  local f = fixture(); f:session(); f:target(1)
+  local attempts = 0
+  f.r.SetMediaTrackInfo_Value = function()
+    attempts = attempts + 1; error('restoration error')
+  end
+  f.r.SendMIDIMessageToHardware = function()
+    attempts = attempts + 1; error('hardware error')
+  end
+  local ok, err = f.engine:cleanup()
+  eq(ok, false); eq(attempts, 2)
+  assert(err:find('restoration error', 1, true))
+  assert(err:find('hardware error', 1, true))
+  local repeated_ok, repeated_err = f.engine:cleanup()
+  eq(repeated_ok, false); eq(repeated_err, err); eq(attempts, 2)
+end)
+
+test('runtime error remains visible when cleanup also fails', function()
+  local f = fixture(); f.engine:cleanup(); reaper = f.r
+  dofile('scripts/Launchpad X - Start.lua'); f:pump(); f:pump()
+  f:press(95); f:tap(8, 1); f:pump()
+  f.r.MIDI_GetRecentInputEvent = function() error('original tick failure') end
+  f.r.SetMediaTrackInfo_Value = function() error('secondary cleanup failure') end
+  f:pump()
+  eq(f.ext.running, nil); eq(f.toggle, 0)
+  local logs = table.concat(f.logs)
+  assert(logs:find('original tick failure', 1, true))
+  assert(logs:find('secondary cleanup failure', 1, true))
+end)
+
+test('action finalizes even when engine cleanup unexpectedly throws', function()
+  local f = fixture(); f.engine:cleanup(); reaper = f.r
+  local original_dofile = dofile
+  dofile = function(path)
+    local module = original_dofile(path)
+    if path:match('launchpad/engine%.lua$') then
+      module.cleanup = function() error('unexpected cleanup exception') end
+    end
+    return module
+  end
+  local started, err = pcall(function() original_dofile('scripts/Launchpad X - Start.lua') end)
+  dofile = original_dofile
+  assert(started, err)
+  dofile('scripts/Launchpad X - Disable.lua'); f:pump()
+  eq(f.ext.running, nil); eq(f.toggle, 0)
+  assert(table.concat(f.logs):find('unexpected cleanup exception', 1, true))
+  for _, exit in ipairs(f.exits) do exit() end
+end)
+
 print(string.format('%d tests passed.',count))
