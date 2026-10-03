@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" role="img" aria-labelledby="title desc">
 <title id="title">Launchpad X Session mixer and transport mappings</title>
-<desc id="desc">Columns map to tracks 1 through 8. Rows 1 through 5 are dark. Row 6 toggles track mute, white off and red on. Row 7 toggles track solo, white off and amber on. Row 8 selects and arms a Note target in purple or toggles audio arm in pink. Volume records, red steady or pulsing while recording. Pan plays or pauses, green steady when stopped, pulsing when playing and amber when paused. Send B stops and goes to project start, dim white when stopped at start. Stop Clip stops transport, dim white when stopped. Mute toggles master mute, Solo toggles repeat with green on and white off, and Record Arm toggles master mono with amber on and white off. Send A, Capture MIDI and arrows are unassigned. Missing tracks and unarmed pads are dark.</desc>
+<desc id="desc">Columns map to tracks 1 through 8. Rows 1 through 5 are dark. Row 6 toggles track mute, white off and red on. Row 7 toggles track solo, white off and amber on. Row 8 selects and arms a Note target in purple or toggles audio arm in pink. Volume records, red steady or pulsing while recording. Pan plays or pauses, green steady when stopped, pulsing when playing and amber when paused. Send B goes to project start only when stopped away from start, white when available and dim white and inactive otherwise. Stop Clip stops transport, dim white when stopped. Mute toggles master mute, Solo toggles repeat with green on and white off, and Record Arm toggles master mono with amber on and white off. Send A, Capture MIDI and arrows are unassigned. Missing tracks and unarmed pads are dark.</desc>
 <rect width="1280" height="940" rx="18" fill="#f4f6fa"/>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#172033} .label{font-size:18px;font-weight:700}.detail{font-size:16px;fill:#4a5568}.small{font-size:11px;fill:#c4cbd6}.number{font-size:15px;fill:#aab4c5;text-anchor:middle}.leader{fill:none;stroke:#8592a6;stroke-width:2}</style>
 <text x="36" y="43" font-size="26" font-weight="700">Launchpad X · Session mixer and transport</text>
@@ -116,28 +116,28 @@
 <rect x="536" y="610" width="52" height="40" rx="14" fill="#ffbb4d"/>
 <text x="562" y="635" text-anchor="middle" font-size="8" style="fill:#172033">Record Arm</text>
 <path class="leader" d="M590 238 H636"/>
-<text x="654" y="233" class="label">Volume → record / punch out</text>
+<text x="654" y="233" class="label">Record / punch out</text>
 <text x="654" y="256" class="detail">Red · pulses while recording</text>
 <path class="leader" d="M590 294 H636"/>
-<text x="654" y="289" class="label">Pan → play / pause / resume</text>
+<text x="654" y="289" class="label">Play / pause / resume</text>
 <text x="654" y="312" class="detail">Green · pulses while playing · amber paused</text>
 <path class="leader" d="M590 350 H636"/>
-<text x="654" y="345" class="label">Send A → unassigned</text>
+<text x="654" y="345" class="label">Unassigned</text>
 <text x="654" y="368" class="detail">Dark</text>
 <path class="leader" d="M590 406 H636"/>
-<text x="654" y="401" class="label">Send B → stop and go to start</text>
-<text x="654" y="424" class="detail">White · dim when stopped at project start</text>
+<text x="654" y="401" class="label">Go to project start</text>
+<text x="654" y="424" class="detail">White: stopped away from start · dim: inactive</text>
 <path class="leader" d="M590 462 H636"/>
-<text x="654" y="457" class="label">Stop Clip → stop transport</text>
+<text x="654" y="457" class="label">Stop transport</text>
 <text x="654" y="480" class="detail">White · dim when already stopped</text>
 <path class="leader" d="M590 518 H636"/>
-<text x="654" y="513" class="label">Mute → master mute</text>
+<text x="654" y="513" class="label">Master mute</text>
 <text x="654" y="536" class="detail">Red: muted · white: unmuted</text>
 <path class="leader" d="M590 574 H636"/>
-<text x="654" y="569" class="label">Solo → repeat</text>
+<text x="654" y="569" class="label">Repeat</text>
 <text x="654" y="592" class="detail">Green: on · white: off</text>
 <path class="leader" d="M590 630 H636"/>
-<text x="654" y="625" class="label">Record Arm → master mono L+R</text>
+<text x="654" y="625" class="label">Master mono L+R</text>
 <text x="654" y="648" class="detail">Amber: mono · white: stereo</text>
 <text x="36" y="744" class="label">Grid controls · tracks 1–8</text>
 <text x="36" y="780" class="label">Row 6 · track mute</text>
@@ -147,6 +147,6 @@
 <text x="790" y="780" class="label">Row 8 · arm / Note target</text>
 <text x="790" y="807" class="detail">Pink: audio · purple: Note target</text>
 <text x="36" y="858" class="detail">Session only · rows 1–5, Send A, Capture MIDI and arrows are unassigned.</text>
-<text x="36" y="888" class="detail">Example: stopped at start, repeat and mono on. Dimmed transport buttons remain functional.</text>
+<text x="36" y="888" class="detail">Example: stopped at start, repeat and mono on. Send B is dim and inactive.</text>
 <text x="36" y="918" class="detail">Missing tracks and unarmed pads are dark. Transport preserves the active Note target.</text>
 </svg>

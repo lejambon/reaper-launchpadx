@@ -253,6 +253,11 @@ function Engine:request_target(track)
   end
 end
 
+function Engine:can_go_to_start()
+  return self.r.GetPlayStateEx(self.project) == 0
+    and math.abs(self.r.GetCursorPositionEx(self.project)) > start_tolerance
+end
+
 function Engine:transport(key)
   local r, project = self.r, self.project
   if key == button.play_pause then
@@ -266,12 +271,10 @@ function Engine:transport(key)
     r.Main_OnCommandEx(record_action, 0, project)
   elseif key == button.repeat_toggle then
     r.GetSetRepeatEx(project, 2)
-  elseif key == button.stop or key == button.start then
+  elseif key == button.stop then
     r.OnStopButtonEx(project)
-    -- Native recording prompts can leave transport running; never seek then.
-    if key == button.start and r.GetPlayStateEx(project) == 0 then
-      r.SetEditCurPos2(project, 0, true, false)
-    end
+  elseif key == button.start and self:can_go_to_start() then
+    r.SetEditCurPos2(project, 0, true, false)
   end
 end
 
@@ -385,7 +388,6 @@ function Engine:transport_feedback()
   local recording = (state & play_state.recording) ~= 0
   local stopped = state == 0
   local repeat_on = self.r.GetSetRepeatEx(self.project, -1) ~= 0
-  local at_start = math.abs(self.r.GetCursorPositionEx(self.project)) <= start_tolerance
   local play_color, play_effect = palette.play, lighting.static
   if paused then
     play_color = palette.paused
@@ -396,7 +398,7 @@ function Engine:transport_feedback()
   self:light(0xB0, button.record, palette.record, recording and lighting.pulse or lighting.static)
   self:light(0xB0, button.repeat_toggle, repeat_on and palette.repeat_on or palette.inactive)
   self:light(0xB0, button.stop, stopped and palette.dim_white or palette.inactive)
-  self:light(0xB0, button.start, stopped and at_start and palette.dim_white or palette.inactive)
+  self:light(0xB0, button.start, self:can_go_to_start() and palette.inactive or palette.dim_white)
 end
 
 function Engine:feedback()

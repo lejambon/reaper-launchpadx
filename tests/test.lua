@@ -73,7 +73,8 @@ local function fixture()
     if not f.cancel_stop then project.play_state = 0 end
   end
   function r.Main_OnCommandEx(id, flag, project)
-    eq(id, 1013); eq(flag, 0); transport_call('record', project)
+    eq(flag, 0)
+    eq(id, 1013); transport_call('record', project)
     if (r.GetPlayStateEx(project) & 4) ~= 0 then
       project.play_state = 1
     else
@@ -765,7 +766,7 @@ test('Volume records and punches out without changing track routing', function()
   eq(#f.transport_calls, 2)
 end)
 
-test('Stop and Send B act immediately while notes hold a pending transfer', function()
+test('Send B only goes to start when stopped away from start and never stops transport', function()
   local f = fixture(); f:session(); f:target(1)
   f:event(1, 0x90, 60, 90); f:target(2)
   f.project.play_state, f.project.cursor = 5, 12
@@ -774,13 +775,25 @@ test('Stop and Send B act immediately while notes hold a pending transfer', func
   eq(f.engine.owner.track, f.a); eq(f.engine.requested, f.hidden); eq(f.engine.held, 1)
   f.project.play_state = 5
   f:press(59); f:tick()
-  eq(f.project.play_state, 0); eq(f.project.cursor, 0)
-  eq(f.transport_calls[2].name, 'stop'); eq(f.transport_calls[3].name, 'cursor')
-  eq(f.engine.owner.track, f.a); eq(f.engine.requested, f.hidden); eq(f.a.I_RECARM, 1)
-  f.cancel_stop = true; f.project.play_state, f.project.cursor = 5, 12
+  eq(f.project.play_state, 5); eq(f.project.cursor, 12); eq(#f.transport_calls, 1)
+  f.project.play_state = 0
   f:press(59); f:tick()
-  eq(f.project.play_state, 5); eq(f.project.cursor, 12)
-  eq(#f.transport_calls, 4)
+  eq(f.project.cursor, 0); eq(f.transport_calls[2].name, 'cursor')
+  eq(f.engine.owner.track, f.a); eq(f.engine.requested, f.hidden); eq(f.a.I_RECARM, 1)
+  for _, state in ipairs({0, 1, 2, 5, 6}) do
+    for _, cursor in ipairs({0, 0.001, 12}) do
+      f.project.play_state, f.project.cursor = state, cursor
+      local calls = #f.transport_calls
+      f:cc(59); f:cc(59); f:tick(); f:cc(59, 0); f:tick()
+      if state == 0 and cursor > 0.001 then
+        eq(#f.transport_calls, calls + 1); eq(f.project.cursor, 0)
+      else
+        eq(#f.transport_calls, calls); eq(f.project.cursor, cursor)
+      end
+      eq(f.project.play_state, state)
+      transport_led(f, 59, 1)
+    end
+  end
 end)
 
 test('Solo toggles repeat and Record Arm toggles mono independently of grid solo', function()
@@ -803,10 +816,10 @@ test('transport LEDs follow state cursor tolerance and animation changes', funct
   local cases = {
     { state = 0, cursor = 0, play = 19, stop = 1, start = 1 },
     { state = 0, cursor = 12, play = 19, stop = 1, start = 3 },
-    { state = 1, cursor = 0, play = 19, pulse = 2, stop = 3, start = 3 },
-    { state = 2, cursor = 0, play = 9, stop = 3, start = 3 },
-    { state = 5, cursor = 0, play = 19, pulse = 2, record = 2, stop = 3, start = 3 },
-    { state = 6, cursor = 0, play = 9, record = 2, stop = 3, start = 3 },
+    { state = 1, cursor = 0, play = 19, pulse = 2, stop = 3, start = 1 },
+    { state = 2, cursor = 0, play = 9, stop = 3, start = 1 },
+    { state = 5, cursor = 0, play = 19, pulse = 2, record = 2, stop = 3, start = 1 },
+    { state = 6, cursor = 0, play = 9, record = 2, stop = 3, start = 1 },
     { state = 0, cursor = 0.001, play = 19, stop = 1, start = 1 },
     { state = 0, cursor = 0.0011, play = 19, stop = 1, start = 3 },
   }
