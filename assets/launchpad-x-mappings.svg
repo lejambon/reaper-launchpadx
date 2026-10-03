@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" role="img" aria-labelledby="title desc">
 <title id="title">Launchpad X Session mixer and transport mappings</title>
-<desc id="desc">Columns map to tracks 1 through 8. Rows 1 through 5 are dark. Row 6 toggles track mute, white off and red on. Row 7 toggles track solo, white off and amber on. Row 8 selects and arms a Note target in purple or toggles audio arm in pink. Volume records, red steady or pulsing while recording. Pan plays or pauses, green steady when stopped, pulsing when playing and amber when paused. Send B goes to project start only when stopped away from start, white when available and dim white and inactive otherwise. Stop Clip stops transport, dim white when stopped. Mute toggles master mute, Solo toggles repeat with green on and white off, and Record Arm toggles master mono with amber on and white off. Send A, Capture MIDI and arrows are unassigned. Missing tracks and unarmed pads are dark.</desc>
+<desc id="desc">Columns map to tracks 1 through 8. Rows 1 through 5 are dark. Row 6 toggles track mute, dim white off and red on. Row 7 toggles track solo, dim white off and amber on. Row 8 selects and arms a Note target in purple or toggles audio arm in pink. Volume records, red steady or pulsing while recording. Pan plays or pauses, green steady when stopped, pulsing when playing and amber when paused. Send B goes to project start only when stopped away from start, bright white when available and off otherwise. Stop Clip stops transport, off when stopped. Mute toggles master mute with red on and dim white off, Solo toggles repeat with green on and dim white off, and Record Arm toggles master mono with amber on and dim white off. Send A, Capture MIDI and arrows are unassigned. Missing tracks and unarmed pads are dark.</desc>
 <rect width="1280" height="940" rx="18" fill="#f4f6fa"/>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#172033} .label{font-size:18px;font-weight:700}.detail{font-size:16px;fill:#4a5568}.small{font-size:11px;fill:#c4cbd6}.number{font-size:15px;fill:#aab4c5;text-anchor:middle}.leader{fill:none;stroke:#8592a6;stroke-width:2}</style>
 <text x="36" y="43" font-size="26" font-weight="700">Launchpad X · Session mixer and transport</text>
@@ -70,8 +70,8 @@
 <rect x="354" y="383" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="412" y="383" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="470" y="383" width="46" height="46" rx="6" fill="#293343"/>
-<rect x="536" y="386" width="52" height="40" rx="14" fill="#aab4c5"/>
-<text x="562" y="411" text-anchor="middle" font-size="10" style="fill:#172033">Send B</text>
+<rect x="536" y="386" width="52" height="40" rx="14" fill="#303a4b"/>
+<text x="562" y="411" text-anchor="middle" font-size="10" style="fill:#c4cbd6">Send B</text>
 <rect x="64" y="439" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="122" y="439" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="180" y="439" width="46" height="46" rx="6" fill="#293343"/>
@@ -80,14 +80,14 @@
 <rect x="354" y="439" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="412" y="439" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="470" y="439" width="46" height="46" rx="6" fill="#293343"/>
-<rect x="536" y="442" width="52" height="40" rx="14" fill="#aab4c5"/>
-<text x="562" y="467" text-anchor="middle" font-size="10" style="fill:#172033">Stop Clip</text>
+<rect x="536" y="442" width="52" height="40" rx="14" fill="#303a4b"/>
+<text x="562" y="467" text-anchor="middle" font-size="10" style="fill:#c4cbd6">Stop Clip</text>
 <text x="49" y="523" class="number" >6</text>
-<rect x="64" y="495" width="46" height="46" rx="6" fill="#f4f6fa"/>
+<rect x="64" y="495" width="46" height="46" rx="6" fill="#aab4c5"/>
 <rect x="122" y="495" width="46" height="46" rx="6" fill="#f25f69"/>
-<rect x="180" y="495" width="46" height="46" rx="6" fill="#f4f6fa"/>
+<rect x="180" y="495" width="46" height="46" rx="6" fill="#aab4c5"/>
 <rect x="238" y="495" width="46" height="46" rx="6" fill="#f25f69"/>
-<rect x="296" y="495" width="46" height="46" rx="6" fill="#f4f6fa"/>
+<rect x="296" y="495" width="46" height="46" rx="6" fill="#aab4c5"/>
 <rect x="354" y="495" width="46" height="46" rx="6" fill="#f25f69"/>
 <rect x="412" y="495" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="470" y="495" width="46" height="46" rx="6" fill="#293343"/>
@@ -95,10 +95,10 @@
 <text x="562" y="523" text-anchor="middle" font-size="10" style="fill:#172033">Mute</text>
 <text x="49" y="579" class="number" >7</text>
 <rect x="64" y="551" width="46" height="46" rx="6" fill="#ffbb4d"/>
-<rect x="122" y="551" width="46" height="46" rx="6" fill="#f4f6fa"/>
+<rect x="122" y="551" width="46" height="46" rx="6" fill="#aab4c5"/>
 <rect x="180" y="551" width="46" height="46" rx="6" fill="#ffbb4d"/>
-<rect x="238" y="551" width="46" height="46" rx="6" fill="#f4f6fa"/>
-<rect x="296" y="551" width="46" height="46" rx="6" fill="#f4f6fa"/>
+<rect x="238" y="551" width="46" height="46" rx="6" fill="#aab4c5"/>
+<rect x="296" y="551" width="46" height="46" rx="6" fill="#aab4c5"/>
 <rect x="354" y="551" width="46" height="46" rx="6" fill="#ffbb4d"/>
 <rect x="412" y="551" width="46" height="46" rx="6" fill="#293343"/>
 <rect x="470" y="551" width="46" height="46" rx="6" fill="#293343"/>
@@ -126,27 +126,27 @@
 <text x="654" y="368" class="detail">Dark</text>
 <path class="leader" d="M590 406 H636"/>
 <text x="654" y="401" class="label">Go to project start</text>
-<text x="654" y="424" class="detail">White: stopped away from start · dim: inactive</text>
+<text x="654" y="424" class="detail">Bright white: available · off: unavailable</text>
 <path class="leader" d="M590 462 H636"/>
 <text x="654" y="457" class="label">Stop transport</text>
-<text x="654" y="480" class="detail">White · dim when already stopped</text>
+<text x="654" y="480" class="detail">Bright white: available · off: stopped</text>
 <path class="leader" d="M590 518 H636"/>
 <text x="654" y="513" class="label">Master mute</text>
-<text x="654" y="536" class="detail">Red: muted · white: unmuted</text>
+<text x="654" y="536" class="detail">Red: muted · dim white: unmuted</text>
 <path class="leader" d="M590 574 H636"/>
 <text x="654" y="569" class="label">Repeat</text>
-<text x="654" y="592" class="detail">Green: on · white: off</text>
+<text x="654" y="592" class="detail">Green: on · dim white: off</text>
 <path class="leader" d="M590 630 H636"/>
 <text x="654" y="625" class="label">Master mono L+R</text>
-<text x="654" y="648" class="detail">Amber: mono · white: stereo</text>
+<text x="654" y="648" class="detail">Amber: mono · dim white: stereo</text>
 <text x="36" y="744" class="label">Grid controls · tracks 1–8</text>
 <text x="36" y="780" class="label">Row 6 · track mute</text>
-<text x="36" y="807" class="detail">White: off · red: on</text>
+<text x="36" y="807" class="detail">Dim white: off · red: on</text>
 <text x="400" y="780" class="label">Row 7 · track solo</text>
-<text x="400" y="807" class="detail">White: off · amber: on</text>
+<text x="400" y="807" class="detail">Dim white: off · amber: on</text>
 <text x="790" y="780" class="label">Row 8 · arm / Note target</text>
 <text x="790" y="807" class="detail">Pink: audio · purple: Note target</text>
 <text x="36" y="858" class="detail">Session only · rows 1–5, Send A, Capture MIDI and arrows are unassigned.</text>
-<text x="36" y="888" class="detail">Example: stopped at start, repeat and mono on. Send B is dim and inactive.</text>
+<text x="36" y="888" class="detail">Example: stopped at start, repeat and mono on. Send B and Stop Clip are off.</text>
 <text x="36" y="918" class="detail">Missing tracks and unarmed pads are dark. Transport preserves the active Note target.</text>
 </svg>

@@ -14,7 +14,7 @@ local mode_buttons = {
 }
 local mixer_row = { mute = 6, solo = 7, arm = 8 }
 local palette = {
-  off = 0, dim_white = 1, inactive = 3, muted = 5, solo = 9, midi_arm = 49, audio_arm = 53,
+  off = 0, dim_white = 1, white = 3, muted = 5, solo = 9, midi_arm = 49, audio_arm = 53,
   mono = 9, record = 5, play = 19, paused = 9, repeat_on = 19,
 }
 local play_state = { playing = 1, paused = 2, recording = 4 }
@@ -396,9 +396,9 @@ function Engine:transport_feedback()
   end
   self:light(0xB0, button.play_pause, play_color, play_effect)
   self:light(0xB0, button.record, palette.record, recording and lighting.pulse or lighting.static)
-  self:light(0xB0, button.repeat_toggle, repeat_on and palette.repeat_on or palette.inactive)
-  self:light(0xB0, button.stop, stopped and palette.dim_white or palette.inactive)
-  self:light(0xB0, button.start, self:can_go_to_start() and palette.inactive or palette.dim_white)
+  self:light(0xB0, button.repeat_toggle, repeat_on and palette.repeat_on or palette.dim_white)
+  self:light(0xB0, button.stop, stopped and palette.off or palette.white)
+  self:light(0xB0, button.start, self:can_go_to_start() and palette.white or palette.off)
 end
 
 function Engine:feedback()
@@ -412,9 +412,9 @@ function Engine:feedback()
       if track then
         if row == mixer_row.mute then
           color = self.r.GetMediaTrackInfo_Value(track, 'B_MUTE') ~= 0
-            and palette.muted or palette.inactive
+            and palette.muted or palette.dim_white
         elseif row == mixer_row.solo then
-          color = self.r.GetMediaTrackInfo_Value(track, 'I_SOLO') ~= 0 and palette.solo or palette.inactive
+          color = self.r.GetMediaTrackInfo_Value(track, 'I_SOLO') ~= 0 and palette.solo or palette.dim_white
         elseif row == mixer_row.arm and self.r.GetMediaTrackInfo_Value(track, 'I_RECARM') ~= 0 then
           local input = self.r.GetMediaTrackInfo_Value(track, 'I_RECINPUT')
           color = input >= 0 and input < 4096 and palette.audio_arm or palette.midi_arm
@@ -427,9 +427,9 @@ function Engine:feedback()
     local color = palette.off
     if key == button.master_mute then
       color = self.r.GetMediaTrackInfo_Value(self.r.GetMasterTrack(self.project), 'B_MUTE') ~= 0
-        and palette.muted or palette.inactive
+        and palette.muted or palette.dim_white
     elseif key == button.master_mono then
-      color = (self.r.GetMasterMuteSoloFlags() & mono_flag) ~= 0 and palette.mono or palette.inactive
+      color = (self.r.GetMasterMuteSoloFlags() & mono_flag) ~= 0 and palette.mono or palette.dim_white
     end
     self:light(0xB0, key, color)
   end

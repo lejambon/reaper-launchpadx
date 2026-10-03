@@ -19,14 +19,14 @@ Session side buttons control transport and master settings:
 | --- | --- | --- |
 | Volume | Record; press again to punch out and continue playback | Red; pulses while recording |
 | Pan | Play / pause / resume | Green; pulses while playing; amber when paused |
-| Send B | Go to project start, only when stopped and away from start | White when available; dim and inactive otherwise |
-| Stop Clip | Stop transport | White; dim when already stopped |
-| Mute | Master mute | Red when muted; white otherwise |
-| Solo | Toggle repeat using REAPER's current loop range | Green when on; white when off |
-| Record Arm | Master mono L+R | Amber when mono; white when stereo |
+| Send B | Go to project start, only when stopped and away from start | Bright white when available; off otherwise |
+| Stop Clip | Stop transport | Bright white when available; off when stopped |
+| Mute | Master mute | Red when muted; dim white otherwise |
+| Solo | Toggle repeat using REAPER's current loop range | Green when on; dim white when off |
+| Record Arm | Master mono L+R | Amber when mono; dim white when stereo |
 
-Grid row 7 toggles track solo: amber when on, white when off, and dark for missing tracks. Send A, Capture MIDI and the directional buttons are unassigned; grid rows 1–5 remain dark.
+Grid row 6 toggles track mute: red when on, dim white when off. Grid row 7 toggles track solo: amber when on, dim white when off, and dark for missing tracks. Send A, Capture MIDI and the directional buttons are unassigned; grid rows 1–5 remain dark.
 
-Transport controls work only in Session, act immediately even with held notes, and preserve the active Note target. Stop Clip follows REAPER's native Stop behavior and recording prompts, including returning to the playback starting position; it remains functional when dimmed. Send B never stops transport: it moves the edit cursor to project time zero only when already stopped and more than 1 ms away from zero. While playing, paused, recording, or already at start, Send B is dim and does nothing. Recording uses already armed tracks and REAPER's recording modes and count-in. Pulsing uses the Launchpad's hardware timing; no MIDI clock is generated.
+Transport controls work only in Session, act immediately even with held notes, and preserve the active Note target. Stop Clip follows REAPER's native Stop behavior and recording prompts, including returning to the playback starting position; it remains functional when its LED is off. Send B never stops transport: it moves the edit cursor to project time zero only when already stopped and more than 1 ms away from zero. While playing, paused, recording, or already at start, Send B is off and does nothing. Recording uses already armed tracks and REAPER's recording modes and count-in. Pulsing uses the Launchpad's hardware timing; no MIDI clock is generated.
 
 An active Note target receives all Note channels with monitoring and record arm enabled. Other direct Launchpad and All MIDI Inputs routes across the project are temporarily suppressed, including tracks beyond column 8; this also blocks other controllers on All MIDI Inputs tracks. Previously armed direct Note routes (including those saved in a reopened project) also disarm when another target activates. Audio-input tracks only toggle arm and leave the Note target unchanged.

@@ -286,8 +286,8 @@ end)
 
 test('all palette colors, external edits, dark missing columns and master state', function()
   local f=fixture(); f:session(); f:target(1)
-  eq(f.engine.leds[0x90*128+31],3); eq(f.engine.leds[0x90*128+38],0)
-  eq(f.engine.leds[0xB0*128+39],3); eq(f.engine.leds[0xB0*128+19],3)
+  eq(f.engine.leds[0x90*128+31],1); eq(f.engine.leds[0x90*128+38],0)
+  eq(f.engine.leds[0xB0*128+39],1); eq(f.engine.leds[0xB0*128+19],1)
   f.a.B_MUTE,f.a.I_SOLO=1,2; f:tick()
   local function led(status,key) return f.engine.leds[status*128+key] end
   eq(led(0x90,81),0); eq(led(0x90,41),0); eq(led(0x90,31),5)
@@ -295,9 +295,9 @@ test('all palette colors, external edits, dark missing columns and master state'
   for row=1,5 do eq(led(0x90,(9-row)*10+1),0) end
   f:press(39); f:press(19); f:tick(); eq(f.master.B_MUTE,1); eq(f.mono,true)
   eq(led(0xB0,39),5); eq(led(0xB0,19),9)
-  f:press(19); f:tick(); eq(f.mono,false); eq(led(0xB0,19),3)
+  f:press(19); f:tick(); eq(f.mono,false); eq(led(0xB0,19),1)
   f.master.B_MUTE=0; f.a.B_MUTE=0; f:tick()
-  eq(led(0xB0,39),3); eq(led(0x90,31),3)
+  eq(led(0xB0,39),1); eq(led(0x90,31),1)
   f.master.B_MUTE=1; f.a.B_MUTE=1; f:tick()
   f.engine:cleanup(); eq(f.master.B_MUTE,1); eq(f.a.B_MUTE,1); eq(f.a.I_SOLO,2)
 end)
@@ -459,7 +459,7 @@ test('prefixed case variations, unrelated devices and legacy settings', function
   local ports = assert(config.discover(f.r))
   eq(ports.note_input.id, 1); eq(ports.control_input.id, 2); eq(ports.control_output.id, 1)
   f:tick(1.1); f:tick(); f:session(); f:target(1)
-  eq(f.a.I_RECARM, 1); eq(f.engine.leds[0x90*128+31], 3)
+  eq(f.a.I_RECARM, 1); eq(f.engine.leds[0x90*128+31], 1)
 end)
 
 test('no-alias APIs prefer underlying present names and ignore stale entries', function()
@@ -791,37 +791,37 @@ test('Send B only goes to start when stopped away from start and never stops tra
         eq(#f.transport_calls, calls); eq(f.project.cursor, cursor)
       end
       eq(f.project.play_state, state)
-      transport_led(f, 59, 1)
+      transport_led(f, 59, 0)
     end
   end
 end)
 
 test('Solo toggles repeat and Record Arm toggles mono independently of grid solo', function()
   local f = fixture(); f:session()
-  transport_led(f, 29, 3); transport_led(f, 19, 3)
+  transport_led(f, 29, 1); transport_led(f, 19, 1)
   f:press(29); f:tick(); eq(f.project.repeat_on, 1); transport_led(f, 29, 19)
   f:press(19); f:tap(7, 1); f:tick()
   eq(f.mono, true); transport_led(f, 19, 9)
   eq(f.a.I_SOLO, 1); eq(f.engine.leds[0x90 * 128 + 21], 9)
-  eq(f.engine.leds[0x90 * 128 + 22], 3); eq(f.engine.leds[0x90 * 128 + 28], 0)
+  eq(f.engine.leds[0x90 * 128 + 22], 1); eq(f.engine.leds[0x90 * 128 + 28], 0)
   f:press(29); f:press(19); f:tap(7, 1); f:tick()
-  eq(f.project.repeat_on, 0); transport_led(f, 29, 3)
-  eq(f.mono, false); transport_led(f, 19, 3)
-  eq(f.engine.leds[0x90 * 128 + 21], 3)
+  eq(f.project.repeat_on, 0); transport_led(f, 29, 1)
+  eq(f.mono, false); transport_led(f, 19, 1)
+  eq(f.engine.leds[0x90 * 128 + 21], 1)
   f.project.repeat_on = 1; f:tick(); transport_led(f, 29, 19)
 end)
 
 test('transport LEDs follow state cursor tolerance and animation changes', function()
   local f = fixture(); f:session()
   local cases = {
-    { state = 0, cursor = 0, play = 19, stop = 1, start = 1 },
-    { state = 0, cursor = 12, play = 19, stop = 1, start = 3 },
-    { state = 1, cursor = 0, play = 19, pulse = 2, stop = 3, start = 1 },
-    { state = 2, cursor = 0, play = 9, stop = 3, start = 1 },
-    { state = 5, cursor = 0, play = 19, pulse = 2, record = 2, stop = 3, start = 1 },
-    { state = 6, cursor = 0, play = 9, record = 2, stop = 3, start = 1 },
-    { state = 0, cursor = 0.001, play = 19, stop = 1, start = 1 },
-    { state = 0, cursor = 0.0011, play = 19, stop = 1, start = 3 },
+    { state = 0, cursor = 0, play = 19, stop = 0, start = 0 },
+    { state = 0, cursor = 12, play = 19, stop = 0, start = 3 },
+    { state = 1, cursor = 0, play = 19, pulse = 2, stop = 3, start = 0 },
+    { state = 2, cursor = 0, play = 9, stop = 3, start = 0 },
+    { state = 5, cursor = 0, play = 19, pulse = 2, record = 2, stop = 3, start = 0 },
+    { state = 6, cursor = 0, play = 9, record = 2, stop = 3, start = 0 },
+    { state = 0, cursor = 0.001, play = 19, stop = 0, start = 0 },
+    { state = 0, cursor = 0.0011, play = 19, stop = 0, start = 3 },
   }
   for _, case in ipairs(cases) do
     f.project.play_state, f.project.cursor = case.state, case.cursor; f:tick()
